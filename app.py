@@ -66,7 +66,6 @@ def signup():
     """
 
     form = UserAddForm()
-
     if form.validate_on_submit():
         try:
             user = User.signup(
@@ -112,8 +111,10 @@ def login():
 @app.route('/logout')
 def logout():
     """Handle logout of user."""
+    do_logout()
+    flash("Successfully logged out!")
 
-    # IMPLEMENT THIS
+    return redirect('/login')
 
 
 ##############################################################################
