@@ -44,7 +44,7 @@ class User(db.Model):
     )
 
     username = db.Column(
-        db.Text,
+        db.String(30),
         nullable=False,
         unique=True,
     )
@@ -60,7 +60,7 @@ class User(db.Model):
     )
 
     bio = db.Column(
-        db.Text,
+        db.String(300),
     )
 
     location = db.Column(
