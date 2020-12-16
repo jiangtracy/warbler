@@ -211,7 +211,7 @@ def profile():
     form = UserUpdateForm(obj=g.user)
 
     if form.validate_on_submit():
-
+        # check if password submitted on form is user's correct password
         if not g.user.authenticate(
             g.user.username, 
             form.password.data):
@@ -316,8 +316,12 @@ def homepage():
     """
 
     if g.user:
+        ids = [ following_user.id for following_user in g.user.following ]
+        ids.append(g.user.id)
+
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(ids))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
