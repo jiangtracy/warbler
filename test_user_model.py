@@ -10,6 +10,7 @@ from unittest import TestCase
 
 from models import db, User, Message, Follows, Like
 from sqlalchemy.exc import IntegrityError
+from flask_bcrypt import Bcrypt
 
 # BEFORE we import our app, let's set an environmental variable
 # to use a different database for tests (we need to do this
@@ -27,6 +28,7 @@ from app import app
 # and create fresh new clean test data
 
 db.create_all()
+bcrypt = Bcrypt()
 
 USER_DATA = {
     "email":"test@test.com",
@@ -48,7 +50,6 @@ USER_DATA_3 = {
     "image_url": User.image_url.default.arg
 }
 
-
 class UserModelTestCase(TestCase):
     """Tests for user model."""
 
@@ -64,6 +65,8 @@ class UserModelTestCase(TestCase):
 
         u = User(**USER_DATA)
         u2 = User(**USER_DATA_2)
+
+        
         db.session.add(u)
         db.session.add(u2)
         db.session.commit()
@@ -93,11 +96,11 @@ class UserModelTestCase(TestCase):
 
         # test if is_following detects when user1 is following user2
         self.user.following.append(self.user2)
-        self.assertEqual(self.user.is_following(self.user2), True)
+        self.assertTrue(self.user.is_following(self.user2))
 
         # test if is_following detects when user1 is not following user2
         self.user.following.remove(self.user2)
-        self.assertEqual(self.user.is_following(self.user2), False)
+        self.assertFalse(self.user.is_following(self.user2))
 
     def test_user_is_followed_by(self):
         """ Does is_followed_by successfully detect when user1 is followed by 
@@ -105,11 +108,11 @@ class UserModelTestCase(TestCase):
 
         # test if is_followed_by detects when user1 is following user2
         self.user.followers.append(self.user2)
-        self.assertEqual(self.user.is_followed_by(self.user2), True)
+        self.assertTrue(self.user.is_followed_by(self.user2))
 
         # test if is_followed_by detects when user1 is not following user2
         self.user.followers.remove(self.user2)
-        self.assertEqual(self.user.is_followed_by(self.user2), False)
+        self.assertFalse(self.user.is_followed_by(self.user2))
 
     def test_user_signup(self):
         """ Does User.signup() successfuly create a new user given valid 
@@ -138,6 +141,36 @@ class UserModelTestCase(TestCase):
             new_user = User.signup(**USER_DATA_3)
             db.session.commit()
 
-        # QUESTION: why is this giving us an error? 
-        # self.assertEqual(User.query.count(), 2)
+        # in a transaction, if one fails, all after will fails, can be reset with db.session.rollback()
+        db.session.rollback()
+
+        self.assertEqual(User.query.count(), 2)
+
+    def test_user_authenticate(self):
+        """ Test if User.authenticate return a user when given a valid username and password and return false when passing in invalid username/password"""
+
+        original_pw = USER_DATA_3['password']
+        USER_DATA_3['password'] = bcrypt.generate_password_hash(
+            USER_DATA_3['password']).decode('UTF-8')
+        new_user = User(**USER_DATA_3)
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Test if sucessfully authenticate by passing valid username and password 
+        self.assertEqual(
+            User.authenticate(USER_DATA_3['username'], original_pw), new_user)
+
+        # Test if failed to authenticate by passing invalid password 
+        self.assertFalse(
+            User.authenticate(USER_DATA_3['username'], 'testuser2')
+        )
+
+        # Test if failed to authenticate by passing invalid username
+        self.assertFalse(
+            User.authenticate('invalid_username', original_pw)
+        )
+    
+
+
 
