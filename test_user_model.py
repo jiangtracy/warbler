@@ -8,7 +8,8 @@
 import os
 from unittest import TestCase
 
-from models import db, User, Message, Follows
+from models import db, User, Message, Follows, Like
+from sqlalchemy.exc import IntegrityError
 
 # BEFORE we import our app, let's set an environmental variable
 # to use a different database for tests (we need to do this
@@ -27,9 +28,29 @@ from app import app
 
 db.create_all()
 
+USER_DATA = {
+    "email":"test@test.com",
+    "username":"testuser",
+    "password":"HASHED_PASSWORD"
+}
+
+USER_DATA_2 = {
+    "email":"test2@test.com",
+    "username":"testuser2",
+    "password":"HASHED_PASSWORD2"
+}
+
+
+USER_DATA_3 = {
+    "email":"test3@test.com",
+    "username":"testuser3",
+    "password":"HASHED_PASSWORD3",
+    "image_url": User.image_url.default.arg
+}
+
 
 class UserModelTestCase(TestCase):
-    """Test views for messages."""
+    """Tests for user model."""
 
     def setUp(self):
         """Create test client, add sample data."""
@@ -37,21 +58,86 @@ class UserModelTestCase(TestCase):
         User.query.delete()
         Message.query.delete()
         Follows.query.delete()
+        Like.query.delete()
 
         self.client = app.test_client()
+
+        u = User(**USER_DATA)
+        u2 = User(**USER_DATA_2)
+        db.session.add(u)
+        db.session.add(u2)
+        db.session.commit()
+
+        self.user = u
+        self.user2 = u2
+
+    def tearDown(self):
+        """ Clean up fouled transactions """
+
+        db.session.rollback()
 
     def test_user_model(self):
         """Does basic model work?"""
 
-        u = User(
-            email="test@test.com",
-            username="testuser",
-            password="HASHED_PASSWORD"
-        )
+        # User should have no messages, no liked messages & no followers
+        self.assertEqual(len(self.user.messages), 0)
+        self.assertEqual(len(self.user.followers), 0)
+        self.assertEqual(len(self.user.liked_messages), 0)
+        self.assertEqual(
+            str(self.user), 
+            f"<User #{self.user.id}: testuser, test@test.com>")
 
-        db.session.add(u)
+    def test_user_is_following(self):
+        """ Does is_following successfully detect when user1 is following 
+        user2 and detect when user1 is not following user2? """
+
+        # test if is_following detects when user1 is following user2
+        self.user.following.append(self.user2)
+        self.assertEqual(self.user.is_following(self.user2), True)
+
+        # test if is_following detects when user1 is not following user2
+        self.user.following.remove(self.user2)
+        self.assertEqual(self.user.is_following(self.user2), False)
+
+    def test_user_is_followed_by(self):
+        """ Does is_followed_by successfully detect when user1 is followed by 
+        user2 and detect when user1 is not followed by user2? """
+
+        # test if is_followed_by detects when user1 is following user2
+        self.user.followers.append(self.user2)
+        self.assertEqual(self.user.is_followed_by(self.user2), True)
+
+        # test if is_followed_by detects when user1 is not following user2
+        self.user.followers.remove(self.user2)
+        self.assertEqual(self.user.is_followed_by(self.user2), False)
+
+    def test_user_signup(self):
+        """ Does User.signup() successfuly create a new user given valid 
+        credentials """
+
+        new_user = User.signup(**USER_DATA_3)
         db.session.commit()
 
-        # User should have no messages & no followers
-        self.assertEqual(len(u.messages), 0)
-        self.assertEqual(len(u.followers), 0)
+        self.assertIsInstance(new_user.id, int)
+        self.assertEqual(User.query.count(), 3)
+
+    def test_user_signup_fail(self):
+        """ Does User.signup() fail to create a new user given invalid 
+        credentials """
+
+        # check that signup fails if non-nullable argument is not passed in
+        USER_DATA_3.pop('username')
+        with self.assertRaises(TypeError):
+            new_user = User.signup(**USER_DATA_3)
+
+        self.assertEqual(User.query.count(), 2)
+
+        # check that signup fails if unique validation fails
+        USER_DATA_3['username'] = USER_DATA['username']
+        with self.assertRaises(IntegrityError):
+            new_user = User.signup(**USER_DATA_3)
+            db.session.commit()
+
+        # QUESTION: why is this giving us an error? 
+        # self.assertEqual(User.query.count(), 2)
+
