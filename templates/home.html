@@ -48,11 +48,26 @@
       <ul class="list-group" id="messages">
         {% for msg in messages %}
           <li class="list-group-item">
-            <a href="/messages/{{ msg.id }}" class="message-link"/>
+            <a href="/messages/{{ msg.id }}" class="message-link"></a>
             <a href="/users/{{ msg.user.id }}">
               <img src="{{ msg.user.image_url }}" alt="" class="timeline-image">
             </a>
             <div class="message-area">
+              <form 
+              action="/likes/{{ msg.id }}/{{ g.user.id }}"
+              method="POST"
+              class="d-inline position-relative" 
+              style="z-index: 5;">
+              {{ form.hidden_tag() }}
+                <button 
+                  class="btn btn-link p-0">
+                  {% if msg in g.user.liked_messages %}
+                    <i class="fas fa-dove"></i>
+                  {% else %}
+                    <i class="fas fa-dove text-secondary"></i>
+                  {% endif %}
+                </button>
+              </form>
               <a href="/users/{{ msg.user.id }}">@{{ msg.user.username }}</a>
               <span class="text-muted">{{ msg.timestamp.strftime('%d %B %Y') }}</span>
               <p>{{ msg.text }}</p>

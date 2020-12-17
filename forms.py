@@ -54,3 +54,7 @@ class UserUpdateForm(FlaskForm):
 
 class UserLogoutForm(FlaskForm):
     """ Form for user logout """
+
+
+class LikeAddForm(FlaskForm):
+    """ Form for adding a like """

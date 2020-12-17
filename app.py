@@ -4,8 +4,8 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm, UserUpdateForm, UserLogoutForm
-from models import db, connect_db, User, Message
+from forms import UserAddForm, LoginForm, MessageForm, UserUpdateForm, UserLogoutForm, LikeAddForm
+from models import db, connect_db, User, Message, Like
 
 CURR_USER_KEY = "curr_user"
 
@@ -307,6 +307,33 @@ def messages_destroy(message_id):
 
 
 ##############################################################################
+# Like page routes
+
+
+@app.route('/likes/<int:message_id>/<int:user_id>', methods=["POST"])
+def likes_create_or_remove(message_id, user_id):
+    """ Create a like if currently not liked. Otherwise, remove like. """
+    print('LIKES')
+    message = Message.query.get(message_id)
+    form = LikeAddForm()
+    # breakpoint()
+    if form.validate_on_submit():
+        if message not in g.user.liked_messages:
+            print('CREATE NEW LIKE')
+            new_like = Like(message_id=message_id, user_id=user_id)
+            db.session.add(new_like)
+            db.session.commit()
+        else:
+            g.user.liked_messages.remove(message)
+            # like = Like.query.get((message_id, user_id))
+            print('DELETE LIKE, like')
+            # db.session.delete(like)
+            db.session.commit()
+
+    return redirect(f"/users/{g.user.id}")
+
+
+##############################################################################
 # Homepage and error pages
 
 
@@ -317,6 +344,7 @@ def homepage():
     - anon users: no messages
     - logged in: 100 most recent messages of followed_users
     """
+    form = LikeAddForm()
 
     if g.user:
         ids = [ following_user.id for following_user in g.user.following ]
@@ -329,7 +357,7 @@ def homepage():
                     .limit(100)
                     .all())
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, form=form)
 
     else:
         return render_template('home-anon.html')
