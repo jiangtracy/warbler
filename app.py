@@ -328,12 +328,12 @@ def messages_destroy(message_id):
 @app.route('/likes/<int:message_id>/<int:user_id>', methods=["POST"])
 def likes_create_or_remove(message_id, user_id):
     """ Create a like if currently not liked. Otherwise, remove like. """
-    print('LIKES')
+
     message = Message.query.get(message_id)
     form = LikeAddForm()
 
     # Prevent user from liking their own posts.
-    if user_id == g.user.id:
+    if message.user_id == g.user.id:
         return redirect(f"/users/{g.user.id}")
    
     if form.validate_on_submit():

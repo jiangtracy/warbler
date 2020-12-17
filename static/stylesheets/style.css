@@ -551,8 +551,12 @@ p.card-bio {
 }
 
 
-/* ================================ Like Symbols */
+/* ================================ Likes */
 
 .fa-dove:hover:before {
   color: lightgray;
+}
+
+.like-form {
+  z-index: 5;
 }
