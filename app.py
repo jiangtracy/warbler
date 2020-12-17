@@ -145,8 +145,9 @@ def users_show(user_id):
     """Show user profile."""
 
     user = User.query.get_or_404(user_id)
+    form = LikeAddForm()
 
-    return render_template('users/show.html', user=user)
+    return render_template('users/show.html', user=user, form=form)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -173,6 +174,19 @@ def users_followers(user_id):
     return render_template('users/followers.html', user=user)
 
 
+@app.route('/users/<int:user_id>/likes')
+def users_likes(user_id):
+    """ Show list of liked messages of this user """
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    form = LikeAddForm()
+    user = User.query.get_or_404(user_id)
+
+    return render_template('users/likes.html', user=user, form=form)
+
+
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
@@ -186,6 +200,7 @@ def add_follow(follow_id):
     db.session.commit()
 
     return redirect(f"/users/{g.user.id}/following")
+
 
 
 @app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
@@ -316,18 +331,18 @@ def likes_create_or_remove(message_id, user_id):
     print('LIKES')
     message = Message.query.get(message_id)
     form = LikeAddForm()
-    # breakpoint()
+
+    # Prevent user from liking their own posts.
+    if user_id == g.user.id:
+        return redirect(f"/users/{g.user.id}")
+   
     if form.validate_on_submit():
         if message not in g.user.liked_messages:
-            print('CREATE NEW LIKE')
             new_like = Like(message_id=message_id, user_id=user_id)
             db.session.add(new_like)
             db.session.commit()
         else:
             g.user.liked_messages.remove(message)
-            # like = Like.query.get((message_id, user_id))
-            print('DELETE LIKE, like')
-            # db.session.delete(like)
             db.session.commit()
 
     return redirect(f"/users/{g.user.id}")

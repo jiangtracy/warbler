@@ -11,17 +11,24 @@
           <a href="/users/{{ user.id }}">
             <img src="{{ user.image_url }}" alt="user image" class="timeline-image">
           </a>
-
           <div class="message-area">
-            <form action="/likes/{{ message.id }}/{{ user.id }}" method="POST" class="d-inline">
-              <button type="submit" class="btn btn-link p-0">
-                {% if message in g.user.liked_messages %}
-                  <i class="fas fa-dove"></i>
-                {% else %}
-                  <i class="fas fa-dove text-secondary"></i>
-                {% endif %}
-              </button>
-            </form>
+            {% if message.user_id != g.user.id %}
+              <form 
+              action="/likes/{{ message.id }}/{{ g.user.id }}"
+              method="POST"
+              class="d-inline position-relative" 
+              style="z-index: 5;">
+              {{ form.hidden_tag() }}
+                <button 
+                  class="btn btn-link p-0">
+                  {% if message in g.user.liked_messages %}
+                    <i class="fas fa-dove"></i>
+                  {% else %}
+                    <i class="fas fa-dove text-secondary"></i>
+                  {% endif %}
+                </button>
+              </form>
+            {% endif %}
             <a href="/users/{{ user.id }}">@{{ user.username }}</a>
             <span class="text-muted">
               {{ message.timestamp.strftime('%d %B %Y') }}
@@ -29,9 +36,7 @@
             <p>{{ message.text }}</p>
           </div>
         </li>
-
       {% endfor %}
-
     </ul>
   </div>
 {% endblock %}
