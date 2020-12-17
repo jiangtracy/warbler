@@ -338,13 +338,10 @@ def likes_create_or_remove(message_id, user_id):
    
     if form.validate_on_submit():
         if message not in g.user.liked_messages:
-            new_like = Like(message_id=message_id, user_id=user_id)
-            db.session.add(new_like)
-            db.session.commit()
+            g.user.liked_messages.append(message)
         else:
             g.user.liked_messages.remove(message)
-            db.session.commit()
-
+        db.session.commit()
     return redirect(f"/users/{g.user.id}")
 
 
