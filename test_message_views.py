@@ -51,7 +51,7 @@ class MessageViewTestCase(TestCase):
         Message.query.delete()
 
         self.client = app.test_client()
-
+        # TODO: could make a helper function _def_user_login that gets the user and makes a POST request. Less repetitive with adding to session each time. Test login route more. Could make a helper function that makes a post request to /signup. Make requests to routes that call the methods rather than calling the methods here. 
         new_user = User.signup(username="testuser",
                                     email="test@test.com",
                                     password="testuser",
@@ -79,7 +79,7 @@ class MessageViewTestCase(TestCase):
         db.session.rollback()
 
     def test_add_message(self):
-        """Can use add a message?"""
+        """Can you add a message?"""
 
         # Since we need to change the session to mimic logging in,
         # we need to use the changing-session trick:
@@ -98,9 +98,11 @@ class MessageViewTestCase(TestCase):
             html = resp.get_data(as_text=True)
 
             self.assertEqual(resp.status_code, 302)
+            # can make sure resp.data has the new message
+            # instead can follow redirects and check the new template
             self.assertEqual(Message.query.count(), 2)
 
-    def test_add_message_fail(self):
+    def test_add_message_logged_out(self):
         """ Test to check that you can't add a message if you are not logged in
         """
 
@@ -119,8 +121,8 @@ class MessageViewTestCase(TestCase):
             self.assertIn("Access unauthorized.", html)
 
     def test_add_message_form_fail(self):
-        """ Test to check that you can't add a message if you are not logged in
-        """
+        """ Test to check that you can't add a message if non-nullable field is 
+        blank """
 
         with self.client as c:
             with c.session_transaction() as sess:
@@ -137,7 +139,29 @@ class MessageViewTestCase(TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertIn("Add my message!", html)
             self.assertEqual(Message.query.count(), 1)
+    # TODO: can make a post request with the user id that doesn't exist.
+    # Or can create another user instance and check that the message doesn't have that usernmae
+    # def test_add_message_dif_user(self):
+    #     """ Test to check that you can't add a message as another user """
 
+    #     with self.client as c:
+    #         with c.session_transaction() as sess:
+    #             sess[CURR_USER_KEY] = self.testuser_id
+
+    #     resp = c.post(
+    #         "/messages/new",
+    #         data={"text": "Test Text"},
+    #         follow_redirects=True)
+    #     html = resp.get_data(as_text=True)
+
+    #     msg = Message.query.filter(Message.text == "Test Text").first()
+
+    #     new_user2 = User.signup(username="testuser2",
+    #                         email="test2@test.com",
+    #                         password="testuser2",
+    #                         image_url=None)
+
+    #     new_user2.messages.append(msg)
 
     def test_messages_show(self):
         """ Test to a message being shown. """
@@ -166,3 +190,37 @@ class MessageViewTestCase(TestCase):
             self.assertNotIn("test_message", html)
 
             self.assertEqual(Message.query.count(), 0)
+
+    def test_messages_destroy_dif_user(self):
+        """ Test that you are prohibited from deleting a message as another user """
+
+        new_user2 = User.signup(username="testuser2",
+                            email="test2@test.com",
+                            password="testuser2",
+                            image_url=None)
+        db.session.commit()
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = new_user2.id
+    
+            resp = c.post(
+                f"/messages/{self.message_id}/delete",
+                follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(Message.query.count(), 1)
+
+    def test_messages_destroy_logged_out(self):
+        """ Test that you are prohibited from deleting a message if not logged in"""
+    
+        with self.client as c:
+
+            resp = c.post(
+                f"/messages/{self.message_id}/delete",
+                follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Access unauthorized.", html)

@@ -24,6 +24,7 @@ from app import app
 
 db.create_all()
 
+# TODO: make a firle _test_util.py and store user data and message data there
 USER_DATA = {
     "email":"test@test.com",
     "username":"testuser",
@@ -49,7 +50,7 @@ class MessageModelTestCase(TestCase):
 
         db.session.add(user)
         db.session.commit()
-
+        # TODO: again, store user_id not user instance
         self.user = user
 
         message_data = {
@@ -70,7 +71,7 @@ class MessageModelTestCase(TestCase):
 
     def test_message_model(self):
         """ Does message model work? """
-
+        # TODO: test self.user.messages is equal to [self.message]
         self.assertEqual(len(self.user.messages), 1)
         self.assertEqual(Message.query.count(), 1)
 

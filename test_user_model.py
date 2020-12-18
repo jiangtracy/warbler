@@ -76,7 +76,7 @@ class UserModelTestCase(TestCase):
         db.session.add(u)
         db.session.add(u2)
         db.session.commit()
-
+        # TODO: change this to storing self.user_id instead of the instance itself
         self.user = u
         self.user2 = u2
 
@@ -89,6 +89,7 @@ class UserModelTestCase(TestCase):
         """Does basic model work?"""
 
         # User should have no messages, no liked messages & no followers
+        # TODO: write more specific test (don't test characteristic, test the item itself, like an empty list)
         self.assertEqual(len(self.user.messages), 0)
         self.assertEqual(len(self.user.followers), 0)
         self.assertEqual(len(self.user.liked_messages), 0)
@@ -102,6 +103,7 @@ class UserModelTestCase(TestCase):
 
         # test if is_following detects when user1 is following user2
         self.user.following.append(self.user2)
+        # TODO: test the list of is_following itself
         self.assertTrue(self.user.is_following(self.user2))
 
         # test if is_following detects when user1 is not following user2
@@ -136,6 +138,7 @@ class UserModelTestCase(TestCase):
 
         # check that signup fails if non-nullable argument is not passed in
         USER_DATA_3.pop('username')
+        # TODO: note that we can also do try/ except in tests
         with self.assertRaises(TypeError):
             new_user = User.signup(**USER_DATA_3)
 
@@ -163,7 +166,7 @@ class UserModelTestCase(TestCase):
         db.session.add(new_user)
         db.session.commit()
 
-        # Test if sucessfully authenticate by passing valid username and password 
+        # Test if successfully authenticate by passing valid username and password 
         self.assertEqual(
             User.authenticate(USER_DATA_3['username'], original_pw), new_user)
 
