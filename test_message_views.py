@@ -27,6 +27,9 @@ app.config['DEBUG_TB_HOSTS'] = ['dont-show-debug-toolbar']
 # Make Flask errors be real errors, rather than HTML pages with error info
 app.config['TESTING'] = True
 
+# Turn off debugtoolbar intercept redirects
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+
 # Create our tables (we do this here, so we only create the tables
 # once for all tests --- in each test, we'll delete the data
 # and create fresh new clean test data
@@ -91,13 +94,10 @@ class MessageViewTestCase(TestCase):
             resp = c.post(
                 "/messages/new", 
                 data={"text": "Hello"}, 
-                follow_redirects=True)
+                follow_redirects=False)
             html = resp.get_data(as_text=True)
 
-            # Make sure it redirects
-            self.assertEqual(resp.status_code, 200)
-            self.assertIn("Hello", html)
-
+            self.assertEqual(resp.status_code, 302)
             self.assertEqual(Message.query.count(), 2)
 
     def test_add_message_fail(self):
@@ -136,6 +136,8 @@ class MessageViewTestCase(TestCase):
 
             self.assertEqual(resp.status_code, 200)
             self.assertIn("Add my message!", html)
+            self.assertEqual(Message.query.count(), 1)
+
 
     def test_messages_show(self):
         """ Test to a message being shown. """
@@ -154,9 +156,7 @@ class MessageViewTestCase(TestCase):
         with self.client as c:
             with c.session_transaction() as sess:
                 sess[CURR_USER_KEY] = self.testuser_id
-     
-            print('messageid', self.message_id)
-
+    
             resp = c.post(
                 f"/messages/{self.message_id}/delete",
                 follow_redirects=True)
