@@ -49,23 +49,26 @@ class MessageViewTestCase(TestCase):
 
         self.client = app.test_client()
 
-        self.testuser = User.signup(username="testuser",
+        new_user = User.signup(username="testuser",
                                     email="test@test.com",
                                     password="testuser",
                                     image_url=None)
 
         db.session.commit()
 
+        self.testuser_id = new_user.id
+
         message_data = {
-            "user_id":self.testuser.id,
-            "text":"test_message"
+            "user_id": self.testuser_id,
+            "text": "test_message"
         }
 
+        # store the id instead, otherwise might be bound to session
         message = Message(**message_data)
         db.session.add(message)
         db.session.commit()
 
-        self.message = message
+        self.message_id = message.id
 
     def tearDown(self):
         """ Clean up fouled transactions """
@@ -80,7 +83,7 @@ class MessageViewTestCase(TestCase):
 
         with self.client as c:
             with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.testuser.id
+                sess[CURR_USER_KEY] = self.testuser_id
 
             # Now, that session setting is saved, so we can have
             # the rest of ours test
@@ -107,8 +110,8 @@ class MessageViewTestCase(TestCase):
             # user add a message
 
             resp = c.post(
-                "/messages/new", 
-                data={"text": "Hello"}, 
+                "/messages/new",
+                data={"text": "Hello"},
                 follow_redirects=True)
             html = resp.get_data(as_text=True)
 
@@ -121,7 +124,7 @@ class MessageViewTestCase(TestCase):
 
         with self.client as c:
             with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.testuser.id
+                sess[CURR_USER_KEY] = self.testuser_id
 
             # If we don't add text to the message, the form should be invalid
 
@@ -138,8 +141,8 @@ class MessageViewTestCase(TestCase):
         """ Test to a message being shown. """
 
         with self.client as c:
-            print(self.message.id)
-            resp = c.get(f"/messages/{self.message.id}")
+            # print(self.message.id)
+            resp = c.get(f"/messages/{self.message_id}")
             html = resp.get_data(as_text=True)
 
             self.assertEqual(resp.status_code, 200)
@@ -147,17 +150,19 @@ class MessageViewTestCase(TestCase):
 
     def test_messages_destroy(self):
         """ Test deleting a message """
-
+     
         with self.client as c:
             with c.session_transaction() as sess:
-                sess[CURR_USER_KEY] = self.testuser.id
+                sess[CURR_USER_KEY] = self.testuser_id
+     
+            print('messageid', self.message_id)
 
-                resp = c.post(
-                    f"/{message.id}/delete",
-                    follow_redirects=True)
-                html = resp.get_data(as_text=True)
+            resp = c.post(
+                f"/messages/{self.message_id}/delete",
+                follow_redirects=True)
+            html = resp.get_data(as_text=True)
 
-                self.assertEqual(resp.status_code, 200)
-                self.assertNotIn("test_message", html)
+            self.assertEqual(resp.status_code, 200)
+            self.assertNotIn("test_message", html)
 
-                self.assertEqual(Message.query.count(), 0)
+            self.assertEqual(Message.query.count(), 0)
