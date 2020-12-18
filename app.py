@@ -113,7 +113,10 @@ def logout():
     """Handle logout of user."""
     form = UserLogoutForm()
 
+    breakpoint()
+    
     if form.validate_on_submit():
+        print("logout")
         do_logout()
         flash("Successfully logged out!")
 
@@ -328,8 +331,8 @@ def messages_destroy(message_id):
 # Like page routes
 
 
-@app.route('/likes/<int:message_id>/<int:user_id>', methods=["POST"])
-def likes_create_or_remove(message_id, user_id):
+@app.route('/likes/<int:message_id>', methods=["POST"])
+def likes_create_or_remove(message_id):
     """ Create a like if currently not liked. Otherwise, remove like. """
 
     message = Message.query.get(message_id)

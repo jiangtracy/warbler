@@ -55,7 +55,7 @@
             <div class="message-area">
               {% if msg.user_id != g.user.id %}
                 <form 
-                action="/likes/{{ msg.id }}/{{ g.user.id }}"
+                action="/likes/{{ msg.id }}"
                 method="POST"
                 class="d-inline position-relative like-form">
                 {{ form.hidden_tag() }}
