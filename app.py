@@ -35,6 +35,7 @@ def add_user_to_g():
 
     if CURR_USER_KEY in session:
         g.user = User.query.get(session[CURR_USER_KEY])
+        g.UserLogoutForm = UserLogoutForm()
 
     else:
         g.user = None
@@ -111,12 +112,8 @@ def login():
 @app.route('/logout', methods=["POST"])
 def logout():
     """Handle logout of user."""
-    form = UserLogoutForm()
 
-    breakpoint()
-    
-    if form.validate_on_submit():
-        print("logout")
+    if g.UserLogoutForm.validate_on_submit():
         do_logout()
         flash("Successfully logged out!")
 
@@ -379,6 +376,11 @@ def homepage():
 
     else:
         return render_template('home-anon.html')
+
+
+@app.errorhandler(404)
+def show_404_page(err):
+    return render_template('404.html'), 404
 
 
 ##############################################################################
