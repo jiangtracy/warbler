@@ -23,6 +23,12 @@ os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
 
 from app import app
 
+# This is a bit of hack, but don't use Flask DebugToolbar
+app.config['DEBUG_TB_HOSTS'] = ['dont-show-debug-toolbar']
+
+# Make Flask errors be real errors, rather than HTML pages with error info
+app.config['TESTING'] = True
+
 # Create our tables (we do this here, so we only create the tables
 # once for all tests --- in each test, we'll delete the data
 # and create fresh new clean test data

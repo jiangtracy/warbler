@@ -21,6 +21,12 @@ os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
 
 from app import app, CURR_USER_KEY
 
+# This is a bit of hack, but don't use Flask DebugToolbar
+app.config['DEBUG_TB_HOSTS'] = ['dont-show-debug-toolbar']
+
+# Make Flask errors be real errors, rather than HTML pages with error info
+app.config['TESTING'] = True
+
 # Create our tables (we do this here, so we only create the tables
 # once for all tests --- in each test, we'll delete the data
 # and create fresh new clean test data
@@ -50,6 +56,22 @@ class MessageViewTestCase(TestCase):
 
         db.session.commit()
 
+        message_data = {
+            "user_id":self.testuser.id,
+            "text":"test_message"
+        }
+
+        message = Message(**message_data)
+        db.session.add(message)
+        db.session.commit()
+
+        self.message = message
+
+    def tearDown(self):
+        """ Clean up fouled transactions """
+
+        db.session.rollback()
+
     def test_add_message(self):
         """Can use add a message?"""
 
@@ -63,10 +85,79 @@ class MessageViewTestCase(TestCase):
             # Now, that session setting is saved, so we can have
             # the rest of ours test
 
-            resp = c.post("/messages/new", data={"text": "Hello"})
+            resp = c.post(
+                "/messages/new", 
+                data={"text": "Hello"}, 
+                follow_redirects=True)
+            html = resp.get_data(as_text=True)
 
             # Make sure it redirects
-            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Hello", html)
 
-            msg = Message.query.one()
-            self.assertEqual(msg.text, "Hello")
+            self.assertEqual(Message.query.count(), 2)
+
+    def test_add_message_fail(self):
+        """ Test to check that you can't add a message if you are not logged in
+        """
+
+        with self.client as c:
+
+            # If we don't add testuser.id to session, the server should not let 
+            # user add a message
+
+            resp = c.post(
+                "/messages/new", 
+                data={"text": "Hello"}, 
+                follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Access unauthorized.", html)
+
+    def test_add_message_form_fail(self):
+        """ Test to check that you can't add a message if you are not logged in
+        """
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            # If we don't add text to the message, the form should be invalid
+
+            resp = c.post(
+                "/messages/new", 
+                data={"text": ""}, 
+                follow_redirects=True)
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("Add my message!", html)
+
+    def test_messages_show(self):
+        """ Test to a message being shown. """
+
+        with self.client as c:
+            print(self.message.id)
+            resp = c.get(f"/messages/{self.message.id}")
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn("test_message", html)
+
+    def test_messages_destroy(self):
+        """ Test deleting a message """
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+                resp = c.post(
+                    f"/{message.id}/delete",
+                    follow_redirects=True)
+                html = resp.get_data(as_text=True)
+
+                self.assertEqual(resp.status_code, 200)
+                self.assertNotIn("test_message", html)
+
+                self.assertEqual(Message.query.count(), 0)
