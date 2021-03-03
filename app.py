@@ -67,26 +67,25 @@ def signup():
     """
 
     form = UserAddForm()
-    if form.validate_on_submit():
-        try:
-            user = User.signup(
-                username=form.username.data,
-                password=form.password.data,
-                email=form.email.data,
-                image_url=form.image_url.data or User.image_url.default.arg,
-            )
-            db.session.commit()
-
-        except IntegrityError:
-            flash("Username already taken", 'danger')
-            return render_template('users/signup.html', form=form)
-
-        do_login(user)
-
-        return redirect("/")
-
-    else:
+    if not form.validate_on_submit():
         return render_template('users/signup.html', form=form)
+
+    try:
+        user = User.signup(
+            username=form.username.data,
+            password=form.password.data,
+            email=form.email.data,
+            image_url=form.image_url.data or User.image_url.default.arg,
+        )
+        db.session.commit()
+
+    except IntegrityError:
+        flash("Username already taken", 'danger')
+        return render_template('users/signup.html', form=form)
+
+    do_login(user)
+
+    return redirect("/")
 
 
 @app.route('/login', methods=["GET", "POST"])
