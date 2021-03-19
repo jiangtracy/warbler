@@ -9,7 +9,7 @@
 - Over 80% coverage
 
 # Functionalities
-- User authentifaction/authorization
+- user authentifaction/authorization
 - user can search and follow other users
 - user like like/unlike messages 
 - user can update their profile
