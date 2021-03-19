@@ -12,8 +12,8 @@ from models import db, User, Message, Follows, Like
 from sqlalchemy.exc import IntegrityError
 from flask_bcrypt import Bcrypt
 
-# BEFORE we import our app, let's set an environmental variable
-# to use a different database for tests (we need to do this
+# set an environmental variable
+# to use a different database for tests (do this
 # before we import our app, since that will have already
 # connected to the database
 

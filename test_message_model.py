@@ -7,8 +7,8 @@ from models import db, User, Message, Follows, Like
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 
-# BEFORE we import our app, let's set an environmental variable
-# to use a different database for tests (we need to do this
+# set an environmental variable
+# to use a different database for tests (do this
 # before we import our app, since that will have already
 # connected to the database
 
@@ -18,7 +18,7 @@ os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
 
 from app import app
 
-# Create our tables (we do this here, so we only create the tables
+# Create tables (do this here, so we only create the tables
 # once for all tests --- in each test, we'll delete the data
 # and create fresh new clean test data
 
